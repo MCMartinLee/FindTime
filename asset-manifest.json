@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/FindTime/static/css/main.4972d2fb.css",
+    "main.js": "/FindTime/static/js/main.1d844270.js",
+    "index.html": "/FindTime/index.html",
+    "main.4972d2fb.css.map": "/FindTime/static/css/main.4972d2fb.css.map",
+    "main.1d844270.js.map": "/FindTime/static/js/main.1d844270.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.4972d2fb.css",
+    "static/js/main.1d844270.js"
+  ]
+}
