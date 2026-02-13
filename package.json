@@ -2,7 +2,7 @@
   "name": "findtime",
   "version": "1.0.0",
   "private": true,
-  "homepage": "https://mcmartinlee.github.io/FindTime",
+  "homepage": "https://MCMartinLee.github.io/FindTime",
   "dependencies": {
     "dayjs": "^1.11.13",
     "firebase": "^9.23.0",
