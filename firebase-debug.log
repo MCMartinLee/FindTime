@@ -1,0 +1,60 @@
+[debug] [2026-07-01T02:45:53.107Z] ----------------------------------------------------------------------
+[debug] [2026-07-01T02:45:53.110Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\DreamFall\AppData\Local\npm-cache\_npx\7750544ccf494d8b\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules --non-interactive
+[debug] [2026-07-01T02:45:53.110Z] CLI Version:   15.22.4
+[debug] [2026-07-01T02:45:53.110Z] Platform:      win32
+[debug] [2026-07-01T02:45:53.110Z] Node Version:  v24.13.1
+[debug] [2026-07-01T02:45:53.110Z] Detected Agent: codex_cli
+[debug] [2026-07-01T02:45:53.110Z] Time:          Tue Jun 30 2026 21:45:53 GMT-0500 (Central Daylight Time)
+[debug] [2026-07-01T02:45:53.110Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-01T02:45:54.726Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-01T02:45:54.727Z] > authorizing via signed-in user (martin33156@gmail.com)
+[debug] [2026-07-01T02:45:54.727Z] [iam] checking project find-meeting-slots for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-07-01T02:45:54.728Z] Checked if tokens are valid: false, expires at: 1782874764183
+[debug] [2026-07-01T02:45:54.728Z] Checked if tokens are valid: false, expires at: 1782874764183
+[debug] [2026-07-01T02:45:54.729Z] > refreshing access token with scopes: []
+[debug] [2026-07-01T02:45:54.730Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-07-01T02:45:54.730Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-01T02:45:54.832Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-07-01T02:45:54.832Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-01T02:45:54.840Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/find-meeting-slots:testIamPermissions [none]
+[debug] [2026-07-01T02:45:54.840Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/find-meeting-slots:testIamPermissions  x-goog-user-project=find-meeting-slots
+[debug] [2026-07-01T02:45:54.840Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/find-meeting-slots:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-07-01T02:45:55.037Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/find-meeting-slots:testIamPermissions 200
+[debug] [2026-07-01T02:45:55.037Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/find-meeting-slots:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'find-meeting-slots'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-07-01T02:45:55.040Z] Checked if tokens are valid: true, expires at: 1782877553832
+[debug] [2026-07-01T02:45:55.040Z] Checked if tokens are valid: true, expires at: 1782877553832
+[debug] [2026-07-01T02:45:55.040Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/find-meeting-slots/databases/(default) [none]
+[debug] [2026-07-01T02:45:55.347Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/find-meeting-slots/databases/(default) 200
+[debug] [2026-07-01T02:45:55.347Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/find-meeting-slots/databases/(default) {"name":"projects/find-meeting-slots/databases/(default)","uid":"85f412be-c52e-4eeb-9a48-f08dd76ba1b1","createTime":"2026-02-13T20:30:47.820677Z","updateTime":"2026-02-13T20:30:47.820677Z","locationId":"nam5","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-07-01T01:45:55.322065Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"s","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"INDopIa7sJUDMKHmuru05pID"}
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-07-01T02:45:55.347Z] Checked if tokens are valid: true, expires at: 1782877553832
+[debug] [2026-07-01T02:45:55.348Z] Checked if tokens are valid: true, expires at: 1782877553832
+[debug] [2026-07-01T02:45:55.348Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/find-meeting-slots:test [none]
+[debug] [2026-07-01T02:45:55.348Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/find-meeting-slots:test [omitted]
+[debug] [2026-07-01T02:45:55.463Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/find-meeting-slots:test 200
+[debug] [2026-07-01T02:45:55.463Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/find-meeting-slots:test {}
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[debug] [2026-07-01T02:45:55.464Z] Checked if tokens are valid: true, expires at: 1782877553832
+[debug] [2026-07-01T02:45:55.464Z] Checked if tokens are valid: true, expires at: 1782877553832
+[debug] [2026-07-01T02:45:55.464Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/find-meeting-slots/releases pageSize=10&pageToken=
+[debug] [2026-07-01T02:45:55.518Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/find-meeting-slots/releases 200
+[debug] [2026-07-01T02:45:55.519Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/find-meeting-slots/releases {"releases":[{"name":"projects/find-meeting-slots/releases/cloud.firestore","rulesetName":"projects/find-meeting-slots/rulesets/815ba79a-3d7f-4787-8e9b-2bd6a2509ef0","createTime":"2026-02-13T20:30:51.745454Z","updateTime":"2026-07-01T02:41:40.180968Z"}]}
+[debug] [2026-07-01T02:45:55.519Z] Checked if tokens are valid: true, expires at: 1782877553832
+[debug] [2026-07-01T02:45:55.519Z] Checked if tokens are valid: true, expires at: 1782877553832
+[debug] [2026-07-01T02:45:55.519Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/find-meeting-slots/rulesets/815ba79a-3d7f-4787-8e9b-2bd6a2509ef0 [none]
+[debug] [2026-07-01T02:45:55.600Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/find-meeting-slots/rulesets/815ba79a-3d7f-4787-8e9b-2bd6a2509ef0 200
+[debug] [2026-07-01T02:45:55.600Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/find-meeting-slots/rulesets/815ba79a-3d7f-4787-8e9b-2bd6a2509ef0 [omitted]
+[info] i  firestore: latest version of firestore.rules already up to date, skipping upload... 
+[debug] [2026-07-01T02:45:55.601Z] [rules] releasing cloud.firestore with ruleset projects/find-meeting-slots/rulesets/815ba79a-3d7f-4787-8e9b-2bd6a2509ef0
+[debug] [2026-07-01T02:45:55.601Z] Checked if tokens are valid: true, expires at: 1782877553832
+[debug] [2026-07-01T02:45:55.601Z] Checked if tokens are valid: true, expires at: 1782877553832
+[debug] [2026-07-01T02:45:55.601Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/find-meeting-slots/releases/cloud.firestore [none]
+[debug] [2026-07-01T02:45:55.601Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/find-meeting-slots/releases/cloud.firestore {"release":{"name":"projects/find-meeting-slots/releases/cloud.firestore","rulesetName":"projects/find-meeting-slots/rulesets/815ba79a-3d7f-4787-8e9b-2bd6a2509ef0"}}
+[debug] [2026-07-01T02:45:55.734Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/find-meeting-slots/releases/cloud.firestore 200
