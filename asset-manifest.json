@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/FindTime/static/css/main.cc2b4775.css",
-    "main.js": "/FindTime/static/js/main.73009d73.js",
+    "main.js": "/FindTime/static/js/main.faade509.js",
     "index.html": "/FindTime/index.html",
     "main.cc2b4775.css.map": "/FindTime/static/css/main.cc2b4775.css.map",
-    "main.73009d73.js.map": "/FindTime/static/js/main.73009d73.js.map"
+    "main.faade509.js.map": "/FindTime/static/js/main.faade509.js.map"
   },
   "entrypoints": [
     "static/css/main.cc2b4775.css",
-    "static/js/main.73009d73.js"
+    "static/js/main.faade509.js"
   ]
 }
