@@ -9,7 +9,7 @@ I started FindTime while trying to schedule my dissertation defense. Most schedu
 ## Features
 
 - Create an event with a title, timezone, location, and directions link.
-- Search for locations with Google Maps when a Maps API key is configured.
+- Search for locations with Google Maps and select a place directly on the map when a Maps API key is configured.
 - Choose an event length, such as 30 minutes, 1 hour, or 3 hours.
 - Add multiple candidate start times on the same day or across different days.
 - Keep candidate start times aligned to every half hour.
@@ -71,6 +71,6 @@ npm run deploy
 
 - Slots are stored in UTC and displayed in the event timezone.
 - Event duration is stored once per event and used to display each candidate start time as a full time range.
-- Optional location and directions fields help direct attendees to the selected event place.
+- Optional location and directions fields help direct attendees to the selected event place, including an embedded map on the event page.
 - Firestore rules must be republished when event fields change.
 - Share links use hash routing (`#/event/<eventId>`) for GitHub Pages compatibility.

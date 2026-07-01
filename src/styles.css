@@ -74,12 +74,17 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.65rem 0.75rem;
   font: inherit;
   background: #ffffff;
+}
+
+textarea {
+  resize: vertical;
 }
 
 .two-column {
@@ -179,6 +184,46 @@ select {
   font-weight: 700;
 }
 
+.event-description {
+  white-space: pre-wrap;
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+.location-picker {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.map-picker,
+.map-placeholder,
+.event-map {
+  width: 100%;
+  min-height: 280px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f9fafb;
+}
+
+.map-placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  padding: 1rem;
+  text-align: center;
+}
+
+.directions-preview {
+  color: var(--primary-dark);
+  font-weight: 700;
+  width: fit-content;
+}
+
+.event-map {
+  margin-bottom: 1rem;
+}
+
 .slot-choices {
   display: grid;
   gap: 0.45rem;
@@ -200,6 +245,11 @@ select {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.preview-block {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
 }
 
 .calendar-list {

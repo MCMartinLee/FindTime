@@ -6,9 +6,12 @@ service cloud.firestore {
       allow create: if
         request.resource.data.keys().hasOnly([
           'title',
+          'description',
           'timezone',
           'locationName',
           'locationUrl',
+          'locationLat',
+          'locationLng',
           'durationMinutes',
           'slots',
           'createdAt'
@@ -16,6 +19,8 @@ service cloud.firestore {
         request.resource.data.title is string &&
         request.resource.data.title.size() > 0 &&
         request.resource.data.title.size() <= 120 &&
+        request.resource.data.description is string &&
+        request.resource.data.description.size() <= 2000 &&
         request.resource.data.timezone is string &&
         request.resource.data.timezone.size() > 0 &&
         request.resource.data.timezone.size() <= 80 &&
@@ -23,6 +28,8 @@ service cloud.firestore {
         request.resource.data.locationName.size() <= 200 &&
         request.resource.data.locationUrl is string &&
         request.resource.data.locationUrl.size() <= 1000 &&
+        (request.resource.data.locationLat == null || request.resource.data.locationLat is number) &&
+        (request.resource.data.locationLng == null || request.resource.data.locationLng is number) &&
         request.resource.data.durationMinutes is number &&
         request.resource.data.durationMinutes >= 15 &&
         request.resource.data.durationMinutes <= 1440 &&
@@ -33,15 +40,23 @@ service cloud.firestore {
 
       match /responses/{responseId} {
         allow read: if true;
-        allow create: if
-          request.resource.data.keys().hasOnly(['name', 'selectedSlotIds', 'submittedAt']) &&
+        allow create, update: if
+          request.resource.data.keys().hasOnly([
+            'name',
+            'normalizedName',
+            'selectedSlotIds',
+            'submittedAt',
+            'updatedAt'
+          ]) &&
           request.resource.data.name is string &&
           request.resource.data.name.size() > 0 &&
           request.resource.data.name.size() <= 80 &&
+          request.resource.data.normalizedName is string &&
+          request.resource.data.normalizedName == responseId &&
           request.resource.data.selectedSlotIds is list &&
           request.resource.data.selectedSlotIds.size() > 0 &&
           request.resource.data.selectedSlotIds.size() <= 100;
-        allow update, delete: if false;
+        allow delete: if false;
       }
     }
   }

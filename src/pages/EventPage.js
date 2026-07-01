@@ -1,136 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { addDoc, collection, doc, getDoc, getDocs, serverTimestamp } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from "firebase/firestore";
 import { useParams } from "react-router-dom";
+import AvailabilityCalendar from "../components/AvailabilityCalendar";
 import { db, firebaseMissingConfig, firebaseReady } from "../firebase";
-import { formatUtcRangeForTimezone, slotBoundsForTimezone } from "../utils/time";
+import { formatUtcRangeForTimezone } from "../utils/time";
 
 const DEFAULT_DURATION_MINUTES = 60;
 
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
+function responseIdForName(name) {
+  const normalized = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
-function AvailabilityCalendar({ rows, durationMinutes, timezone }) {
-  const days = useMemo(() => {
-    const rowsWithBounds = rows
-      .map((row) => ({
-        ...row,
-        bounds: slotBoundsForTimezone(row.slot.startUtc, durationMinutes, timezone)
-      }))
-      .filter((row) => row.bounds);
-
-    const grouped = new Map();
-    for (const row of rowsWithBounds) {
-      const existing = grouped.get(row.bounds.dayKey) || {
-        dayKey: row.bounds.dayKey,
-        dayLabel: row.bounds.dayLabel,
-        rows: []
-      };
-      existing.rows.push(row);
-      grouped.set(row.bounds.dayKey, existing);
-    }
-
-    return Array.from(grouped.values())
-      .map((day) => {
-        const sortedRows = [...day.rows].sort(
-          (a, b) => a.bounds.startMinutes - b.bounds.startMinutes
-        );
-        const placedRows = [];
-        for (const row of sortedRows) {
-          const overlappingRows = sortedRows.filter(
-            (candidate) =>
-              candidate.bounds.startMinutes < row.bounds.endMinutes &&
-              candidate.bounds.endMinutes > row.bounds.startMinutes
-          );
-          const usedColumns = placedRows
-            .filter((candidate) => candidate.bounds.endMinutes > row.bounds.startMinutes)
-            .map((candidate) => candidate.columnIndex);
-          let columnIndex = 0;
-          while (usedColumns.includes(columnIndex)) columnIndex += 1;
-
-          placedRows.push({
-            ...row,
-            columnIndex,
-            columnCount: Math.max(1, overlappingRows.length)
-          });
-        }
-        const minStart = Math.min(...placedRows.map((row) => row.bounds.startMinutes));
-        const maxEnd = Math.max(...placedRows.map((row) => row.bounds.endMinutes));
-        const startHour = Math.floor(minStart / 60);
-        const endHour = Math.ceil(maxEnd / 60);
-
-        return {
-          ...day,
-          rows: placedRows,
-          startHour,
-          endHour,
-          totalMinutes: Math.max(60, (endHour - startHour) * 60)
-        };
-      })
-      .sort((a, b) => a.dayKey.localeCompare(b.dayKey));
-  }, [rows, durationMinutes, timezone]);
-
-  if (days.length === 0) return null;
-
-  const maxVotes = Math.max(1, ...rows.map((row) => row.count));
-
-  return (
-    <div className="calendar-list">
-      {days.map((day) => (
-        <section key={day.dayKey} className="calendar-day">
-          <h3>{day.dayLabel}</h3>
-          <div
-            className="calendar-grid"
-            style={{
-              gridTemplateRows: `repeat(${day.endHour - day.startHour}, minmax(42px, 1fr))`
-            }}
-          >
-            <div className="calendar-axis">
-              {Array.from({ length: day.endHour - day.startHour }, (_, index) => (
-                <span key={index}>{`${day.startHour + index}:00`}</span>
-              ))}
-            </div>
-            <div className="calendar-track">
-              {Array.from({ length: day.endHour - day.startHour }, (_, index) => (
-                <div key={index} className="calendar-hour-line" />
-              ))}
-              {day.rows.map((row) => {
-                const top =
-                  ((row.bounds.startMinutes - day.startHour * 60) / day.totalMinutes) * 100;
-                const height =
-                  ((row.bounds.endMinutes - row.bounds.startMinutes) / day.totalMinutes) * 100;
-                const strength = row.count / maxVotes;
-                const opacity = clamp(0.22 + strength * 0.62, 0.22, 0.84);
-                const scale = clamp(1 + strength * 0.04, 1, 1.04);
-                const width = 100 / row.columnCount;
-
-                return (
-                  <div
-                    key={row.slot.id}
-                    className="calendar-event"
-                    style={{
-                      top: `${top}%`,
-                      height: `${height}%`,
-                      left: `calc(${row.columnIndex * width}% + 0.45rem)`,
-                      right: "auto",
-                      width: `calc(${width}% - 0.7rem)`,
-                      opacity,
-                      transform: `scaleX(${scale})`
-                    }}
-                  >
-                    <strong>{formatUtcRangeForTimezone(row.slot.startUtc, durationMinutes, timezone)}</strong>
-                    <span>
-                      {row.count} vote{row.count === 1 ? "" : "s"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      ))}
-    </div>
-  );
+  return normalized || "anonymous";
 }
 
 function EventPage() {
@@ -202,9 +86,12 @@ function EventPage() {
     setIsSubmitting(true);
 
     try {
-      await addDoc(collection(db, "events", eventId, "responses"), {
-        name: name.trim(),
+      const trimmedName = name.trim();
+      await setDoc(doc(db, "events", eventId, "responses", responseIdForName(trimmedName)), {
+        name: trimmedName,
+        normalizedName: responseIdForName(trimmedName),
         selectedSlotIds: selectedIds,
+        updatedAt: serverTimestamp(),
         submittedAt: serverTimestamp()
       });
       setName("");
@@ -214,6 +101,15 @@ function EventPage() {
       setError(`Failed to submit response: ${submitError.message}`);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const loadExistingResponse = (nextName) => {
+    const normalizedName = responseIdForName(nextName);
+    const existingResponse = responses.find((response) => response.id === normalizedName);
+
+    if (existingResponse) {
+      setSelectedIds(existingResponse.selectedSlotIds || []);
     }
   };
 
@@ -264,15 +160,20 @@ function EventPage() {
       .sort((a, b) => b.count - a.count);
   }, [eventDoc, responses]);
 
-  const durationMinutes = eventDoc.durationMinutes || DEFAULT_DURATION_MINUTES;
-
   if (status === "loading") return <p>Loading event...</p>;
   if (status === "not-found") return <p>Event not found.</p>;
   if (status === "error") return <p className="error-text">{error}</p>;
 
+  const durationMinutes = eventDoc.durationMinutes || DEFAULT_DURATION_MINUTES;
+  const mapQuery =
+    eventDoc.locationLat != null && eventDoc.locationLng != null
+      ? `${eventDoc.locationLat},${eventDoc.locationLng}`
+      : eventDoc.locationName || "";
+
   return (
     <section className="panel">
       <h1>{eventDoc.title}</h1>
+      {eventDoc.description && <p className="event-description">{eventDoc.description}</p>}
       <p className="muted">Timezone: {eventDoc.timezone || "UTC"}</p>
 
       {(eventDoc.locationName || eventDoc.locationUrl) && (
@@ -284,6 +185,15 @@ function EventPage() {
             </a>
           )}
         </div>
+      )}
+      {mapQuery && (
+        <iframe
+          className="event-map"
+          title="Event location map"
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
+        />
       )}
 
       <div className="share-row">
@@ -298,7 +208,15 @@ function EventPage() {
         <h2>Your availability</h2>
         <label>
           Your name
-          <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Alex" />
+          <input
+            value={name}
+            onChange={(event) => {
+              const nextName = event.target.value;
+              setName(nextName);
+              loadExistingResponse(nextName);
+            }}
+            placeholder="Alex"
+          />
         </label>
 
         <div className="slot-choices">

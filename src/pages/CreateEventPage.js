@@ -1,15 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import AvailabilityCalendar from "../components/AvailabilityCalendar";
 import { db, firebaseMissingConfig, firebaseReady } from "../firebase";
 import { browserTimezone, toUtcIsoFromLocalInput } from "../utils/time";
 
 function makeEmptySlot() {
   return {
     id: `${Date.now()}_${Math.random().toString(16).slice(2, 8)}`,
-    localDateTime: ""
+    localDate: "",
+    startTime: "09:00"
   };
 }
+
+const HALF_HOUR_OPTIONS = Array.from({ length: 48 }, (_, index) => {
+  const hour = Math.floor(index / 2);
+  const minute = index % 2 === 0 ? "00" : "30";
+  const value = `${String(hour).padStart(2, "0")}:${minute}`;
+  const displayHour = hour % 12 || 12;
+  const suffix = hour < 12 ? "AM" : "PM";
+
+  return {
+    value,
+    label: `${displayHour}:${minute} ${suffix}`
+  };
+});
 
 function makeGoogleMapsSearchUrl(placeName) {
   if (!placeName) return "";
@@ -22,12 +37,23 @@ function isHalfHourLocalInput(datetimeLocal) {
   return minuteText === "00" || minuteText === "30";
 }
 
+function slotToLocalDateTime(slot) {
+  if (!slot.localDate || !slot.startTime) return "";
+  return `${slot.localDate}T${slot.startTime}`;
+}
+
 function CreateEventPage() {
   const navigate = useNavigate();
   const locationInputRef = useRef(null);
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [locationName, setLocationName] = useState("");
   const [locationUrl, setLocationUrl] = useState("");
+  const [locationLat, setLocationLat] = useState(null);
+  const [locationLng, setLocationLng] = useState(null);
   const [timezone, setTimezone] = useState(browserTimezone());
   const [durationMinutes, setDurationMinutes] = useState(180);
   const [slots, setSlots] = useState([makeEmptySlot(), makeEmptySlot()]);
@@ -37,23 +63,71 @@ function CreateEventPage() {
   useEffect(() => {
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
     const input = locationInputRef.current;
-    if (!apiKey || !input) return undefined;
+    const mapNode = mapRef.current;
+    if (!apiKey || !input || !mapNode) return undefined;
 
     let autocomplete;
     let listener;
+    let mapClickListener;
     let cancelled = false;
+
+    const selectPlace = (place, fallbackName) => {
+      const nextName = place.formatted_address || place.name || fallbackName || input.value;
+      const placeLocation = place.geometry?.location;
+      const lat = placeLocation?.lat();
+      const lng = placeLocation?.lng();
+
+      setLocationName(nextName);
+      setLocationUrl(place.url || makeGoogleMapsSearchUrl(nextName));
+      if (typeof lat === "number" && typeof lng === "number") {
+        setLocationLat(lat);
+        setLocationLng(lng);
+        mapInstanceRef.current.setCenter({ lat, lng });
+        mapInstanceRef.current.setZoom(15);
+        markerRef.current.setPosition({ lat, lng });
+      }
+    };
 
     const setupAutocomplete = () => {
       if (cancelled || !window.google?.maps?.places) return;
 
+      const defaultCenter = { lat: 39.5, lng: -98.35 };
+      mapInstanceRef.current = new window.google.maps.Map(mapNode, {
+        center: defaultCenter,
+        zoom: 4,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false
+      });
+      markerRef.current = new window.google.maps.Marker({
+        map: mapInstanceRef.current
+      });
+
       autocomplete = new window.google.maps.places.Autocomplete(input, {
-        fields: ["formatted_address", "name", "url"]
+        fields: ["formatted_address", "geometry", "name", "url"]
       });
       listener = autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
-        const nextName = place.formatted_address || place.name || input.value;
-        setLocationName(nextName);
-        setLocationUrl(place.url || makeGoogleMapsSearchUrl(nextName));
+        selectPlace(place, input.value);
+      });
+
+      mapClickListener = mapInstanceRef.current.addListener("click", (mapsEvent) => {
+        const lat = mapsEvent.latLng.lat();
+        const lng = mapsEvent.latLng.lng();
+        const geocoder = new window.google.maps.Geocoder();
+
+        markerRef.current.setPosition({ lat, lng });
+        setLocationLat(lat);
+        setLocationLng(lng);
+        setLocationUrl(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+
+        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+          if (status === "OK" && results?.[0]) {
+            setLocationName(results[0].formatted_address);
+          } else {
+            setLocationName(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+          }
+        });
       });
     };
 
@@ -77,6 +151,7 @@ function CreateEventPage() {
     return () => {
       cancelled = true;
       if (listener) listener.remove();
+      if (mapClickListener) mapClickListener.remove();
       if (autocomplete) window.google?.maps?.event?.clearInstanceListeners(autocomplete);
     };
   }, []);
@@ -85,14 +160,14 @@ function CreateEventPage() {
     () =>
       slots.filter(
         (slot) =>
-          isHalfHourLocalInput(slot.localDateTime) &&
-          Boolean(toUtcIsoFromLocalInput(slot.localDateTime))
+          isHalfHourLocalInput(slotToLocalDateTime(slot)) &&
+          Boolean(toUtcIsoFromLocalInput(slotToLocalDateTime(slot)))
       ),
     [slots]
   );
 
   const hasInvalidSlotTime = slots.some(
-    (slot) => slot.localDateTime && !isHalfHourLocalInput(slot.localDateTime)
+    (slot) => slot.localDate && slot.startTime && !isHalfHourLocalInput(slotToLocalDateTime(slot))
   );
 
   const canCreate =
@@ -104,9 +179,9 @@ function CreateEventPage() {
 
   const addSlot = () => setSlots((prev) => [...prev, makeEmptySlot()]);
 
-  const updateSlot = (slotId, value) => {
+  const updateSlot = (slotId, values) => {
     setSlots((prev) =>
-      prev.map((slot) => (slot.id === slotId ? { ...slot, localDateTime: value } : slot))
+      prev.map((slot) => (slot.id === slotId ? { ...slot, ...values } : slot))
     );
   };
 
@@ -130,27 +205,48 @@ function CreateEventPage() {
 
     const slotDocs = usableSlots.map((slot) => ({
       id: slot.id,
-      startUtc: toUtcIsoFromLocalInput(slot.localDateTime)
+      startUtc: toUtcIsoFromLocalInput(slotToLocalDateTime(slot))
     }));
 
     try {
       setIsSaving(true);
-      const docRef = await addDoc(collection(db, "events"), {
+      const payload = {
         title: title.trim(),
+        description: description.trim(),
         locationName: locationName.trim(),
         locationUrl: locationUrl.trim(),
+        locationLat,
+        locationLng,
         timezone: timezone.trim() || "UTC",
         durationMinutes: Number(durationMinutes),
         slots: slotDocs,
         createdAt: serverTimestamp()
-      });
+      };
+      const docRef = await addDoc(collection(db, "events"), payload);
       navigate(`/event/${docRef.id}`);
     } catch (createError) {
-      setError(`Could not create event: ${createError.message}`);
+      const permissionHint =
+        createError.code === "permission-denied"
+          ? " Publish the updated Firestore rules, then try again."
+          : "";
+      setError(`Could not create event: ${createError.message}.${permissionHint}`);
     } finally {
       setIsSaving(false);
     }
   };
+
+  const previewRows = useMemo(
+    () =>
+      usableSlots.map((slot) => ({
+        slot: {
+          id: slot.id,
+          startUtc: toUtcIsoFromLocalInput(slotToLocalDateTime(slot))
+        },
+        count: 0,
+        voters: []
+      })),
+    [usableSlots]
+  );
 
   return (
     <section className="panel">
@@ -178,6 +274,16 @@ function CreateEventPage() {
         </label>
 
         <label>
+          Description
+          <textarea
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Add details attendees should know"
+            rows={4}
+          />
+        </label>
+
+        <label>
           Display timezone
           <input
             type="text"
@@ -187,9 +293,9 @@ function CreateEventPage() {
           />
         </label>
 
-        <div className="two-column">
+        <div className="location-picker">
           <label>
-            Location
+            Search or select location
             <input
               type="text"
               ref={locationInputRef}
@@ -200,6 +306,8 @@ function CreateEventPage() {
                 setLocationUrl((currentUrl) =>
                   currentUrl ? currentUrl : makeGoogleMapsSearchUrl(nextValue)
                 );
+                setLocationLat(null);
+                setLocationLng(null);
               }}
               onBlur={() => {
                 if (locationName && !locationUrl) {
@@ -214,15 +322,19 @@ function CreateEventPage() {
             />
           </label>
 
-          <label>
-            Directions link
-            <input
-              type="url"
-              value={locationUrl}
-              onChange={(event) => setLocationUrl(event.target.value)}
-              placeholder="https://maps.google.com/..."
-            />
-          </label>
+          {process.env.REACT_APP_GOOGLE_MAPS_API_KEY ? (
+            <div className="map-picker" ref={mapRef} aria-label="Select event location on map" />
+          ) : (
+            <div className="map-placeholder">
+              Add `REACT_APP_GOOGLE_MAPS_API_KEY` to enable the interactive map picker.
+            </div>
+          )}
+
+          {locationUrl && (
+            <a className="directions-preview" href={locationUrl} target="_blank" rel="noreferrer">
+              Preview directions
+            </a>
+          )}
         </div>
 
         <label>
@@ -251,13 +363,25 @@ function CreateEventPage() {
           {slots.map((slot, index) => (
             <div key={slot.id} className="slot-row">
               <label>
-                Slot {index + 1}
+                Date {index + 1}
                 <input
-                  type="datetime-local"
-                  step="1800"
-                  value={slot.localDateTime}
-                  onChange={(event) => updateSlot(slot.id, event.target.value)}
+                  type="date"
+                  value={slot.localDate}
+                  onChange={(event) => updateSlot(slot.id, { localDate: event.target.value })}
                 />
+              </label>
+              <label>
+                Start time
+                <select
+                  value={slot.startTime}
+                  onChange={(event) => updateSlot(slot.id, { startTime: event.target.value })}
+                >
+                  {HALF_HOUR_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </label>
               <button
                 type="button"
@@ -273,6 +397,16 @@ function CreateEventPage() {
             <p className="error-text">Use start times like 1:00 PM or 1:30 PM.</p>
           )}
         </div>
+
+        <section className="preview-block">
+          <h2>Calendar preview</h2>
+          <AvailabilityCalendar
+            rows={previewRows}
+            durationMinutes={Number(durationMinutes)}
+            timezone={timezone}
+            emptyMessage="Pick a date and start time to preview the event options."
+          />
+        </section>
 
         {error && <p className="error-text">{error}</p>}
 
