@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { db, firebaseMissingConfig, firebaseReady } from "../firebase";
@@ -11,8 +11,20 @@ function makeEmptySlot() {
   };
 }
 
+function makeGoogleMapsSearchUrl(placeName) {
+  if (!placeName) return "";
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeName)}`;
+}
+
+function isHalfHourLocalInput(datetimeLocal) {
+  if (!datetimeLocal) return false;
+  const minuteText = datetimeLocal.split("T")[1]?.split(":")[1];
+  return minuteText === "00" || minuteText === "30";
+}
+
 function CreateEventPage() {
   const navigate = useNavigate();
+  const locationInputRef = useRef(null);
   const [title, setTitle] = useState("");
   const [locationName, setLocationName] = useState("");
   const [locationUrl, setLocationUrl] = useState("");
@@ -22,9 +34,65 @@ function CreateEventPage() {
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+    const input = locationInputRef.current;
+    if (!apiKey || !input) return undefined;
+
+    let autocomplete;
+    let listener;
+    let cancelled = false;
+
+    const setupAutocomplete = () => {
+      if (cancelled || !window.google?.maps?.places) return;
+
+      autocomplete = new window.google.maps.places.Autocomplete(input, {
+        fields: ["formatted_address", "name", "url"]
+      });
+      listener = autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        const nextName = place.formatted_address || place.name || input.value;
+        setLocationName(nextName);
+        setLocationUrl(place.url || makeGoogleMapsSearchUrl(nextName));
+      });
+    };
+
+    if (window.google?.maps?.places) {
+      setupAutocomplete();
+    } else {
+      const existingScript = document.querySelector("script[data-google-maps-places]");
+      if (existingScript) {
+        existingScript.addEventListener("load", setupAutocomplete, { once: true });
+      } else {
+        const script = document.createElement("script");
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+        script.async = true;
+        script.defer = true;
+        script.dataset.googleMapsPlaces = "true";
+        script.addEventListener("load", setupAutocomplete, { once: true });
+        document.head.appendChild(script);
+      }
+    }
+
+    return () => {
+      cancelled = true;
+      if (listener) listener.remove();
+      if (autocomplete) window.google?.maps?.event?.clearInstanceListeners(autocomplete);
+    };
+  }, []);
+
   const usableSlots = useMemo(
-    () => slots.filter((slot) => Boolean(toUtcIsoFromLocalInput(slot.localDateTime))),
+    () =>
+      slots.filter(
+        (slot) =>
+          isHalfHourLocalInput(slot.localDateTime) &&
+          Boolean(toUtcIsoFromLocalInput(slot.localDateTime))
+      ),
     [slots]
+  );
+
+  const hasInvalidSlotTime = slots.some(
+    (slot) => slot.localDateTime && !isHalfHourLocalInput(slot.localDateTime)
   );
 
   const canCreate =
@@ -52,6 +120,11 @@ function CreateEventPage() {
 
     if (!canCreate) {
       setError("Please enter a title, event length, at least one valid slot, and Firebase config.");
+      return;
+    }
+
+    if (hasInvalidSlotTime) {
+      setError("Candidate slots must start exactly on the hour or half hour.");
       return;
     }
 
@@ -119,9 +192,25 @@ function CreateEventPage() {
             Location
             <input
               type="text"
+              ref={locationInputRef}
               value={locationName}
-              onChange={(event) => setLocationName(event.target.value)}
-              placeholder="Main library, Room 204"
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                setLocationName(nextValue);
+                setLocationUrl((currentUrl) =>
+                  currentUrl ? currentUrl : makeGoogleMapsSearchUrl(nextValue)
+                );
+              }}
+              onBlur={() => {
+                if (locationName && !locationUrl) {
+                  setLocationUrl(makeGoogleMapsSearchUrl(locationName));
+                }
+              }}
+              placeholder={
+                process.env.REACT_APP_GOOGLE_MAPS_API_KEY
+                  ? "Search Google Maps"
+                  : "Main library, Room 204"
+              }
             />
           </label>
 
@@ -165,6 +254,7 @@ function CreateEventPage() {
                 Slot {index + 1}
                 <input
                   type="datetime-local"
+                  step="1800"
                   value={slot.localDateTime}
                   onChange={(event) => updateSlot(slot.id, event.target.value)}
                 />
@@ -179,6 +269,9 @@ function CreateEventPage() {
               </button>
             </div>
           ))}
+          {hasInvalidSlotTime && (
+            <p className="error-text">Use start times like 1:00 PM or 1:30 PM.</p>
+          )}
         </div>
 
         {error && <p className="error-text">{error}</p>}
