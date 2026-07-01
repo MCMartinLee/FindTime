@@ -14,7 +14,10 @@ function makeEmptySlot() {
 function CreateEventPage() {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
+  const [locationName, setLocationName] = useState("");
+  const [locationUrl, setLocationUrl] = useState("");
   const [timezone, setTimezone] = useState(browserTimezone());
+  const [durationMinutes, setDurationMinutes] = useState(180);
   const [slots, setSlots] = useState([makeEmptySlot(), makeEmptySlot()]);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -24,7 +27,12 @@ function CreateEventPage() {
     [slots]
   );
 
-  const canCreate = title.trim().length > 0 && usableSlots.length > 0 && firebaseReady && !isSaving;
+  const canCreate =
+    title.trim().length > 0 &&
+    usableSlots.length > 0 &&
+    Number(durationMinutes) > 0 &&
+    firebaseReady &&
+    !isSaving;
 
   const addSlot = () => setSlots((prev) => [...prev, makeEmptySlot()]);
 
@@ -43,7 +51,7 @@ function CreateEventPage() {
     setError("");
 
     if (!canCreate) {
-      setError("Please enter a title, at least one valid slot, and Firebase config.");
+      setError("Please enter a title, event length, at least one valid slot, and Firebase config.");
       return;
     }
 
@@ -56,7 +64,10 @@ function CreateEventPage() {
       setIsSaving(true);
       const docRef = await addDoc(collection(db, "events"), {
         title: title.trim(),
+        locationName: locationName.trim(),
+        locationUrl: locationUrl.trim(),
         timezone: timezone.trim() || "UTC",
+        durationMinutes: Number(durationMinutes),
         slots: slotDocs,
         createdAt: serverTimestamp()
       });
@@ -101,6 +112,44 @@ function CreateEventPage() {
             onChange={(event) => setTimezone(event.target.value)}
             placeholder="America/New_York"
           />
+        </label>
+
+        <div className="two-column">
+          <label>
+            Location
+            <input
+              type="text"
+              value={locationName}
+              onChange={(event) => setLocationName(event.target.value)}
+              placeholder="Main library, Room 204"
+            />
+          </label>
+
+          <label>
+            Directions link
+            <input
+              type="url"
+              value={locationUrl}
+              onChange={(event) => setLocationUrl(event.target.value)}
+              placeholder="https://maps.google.com/..."
+            />
+          </label>
+        </div>
+
+        <label>
+          Event length
+          <select
+            value={durationMinutes}
+            onChange={(event) => setDurationMinutes(event.target.value)}
+          >
+            <option value={30}>30 minutes</option>
+            <option value={60}>1 hour</option>
+            <option value={90}>1.5 hours</option>
+            <option value={120}>2 hours</option>
+            <option value={180}>3 hours</option>
+            <option value={240}>4 hours</option>
+            <option value={360}>6 hours</option>
+          </select>
         </label>
 
         <div className="slot-block">

@@ -73,11 +73,19 @@ label {
   font-size: 0.95rem;
 }
 
-input {
+input,
+select {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.65rem 0.75rem;
   font: inherit;
+  background: #ffffff;
+}
+
+.two-column {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 .slot-block {
@@ -154,6 +162,23 @@ input {
   flex: 1;
 }
 
+.location-box {
+  border: 1px solid #99f6e4;
+  background: #f0fdfa;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.location-box a {
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
 .slot-choices {
   display: grid;
   gap: 0.45rem;
@@ -175,6 +200,85 @@ input {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.calendar-list {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.calendar-day h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  min-height: 260px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.calendar-axis {
+  display: grid;
+  grid-template-rows: inherit;
+  background: #f9fafb;
+  border-right: 1px solid var(--border);
+}
+
+.calendar-axis span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  padding: 0.35rem 0.45rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.calendar-track {
+  position: relative;
+  display: grid;
+  grid-template-rows: inherit;
+  min-width: 0;
+}
+
+.calendar-hour-line {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.calendar-event {
+  position: absolute;
+  left: 0.55rem;
+  right: 0.55rem;
+  min-height: 34px;
+  background: var(--primary);
+  color: #ffffff;
+  border: 1px solid var(--primary-dark);
+  border-radius: 8px;
+  padding: 0.4rem 0.55rem;
+  box-shadow: 0 8px 18px rgba(13, 148, 136, 0.2);
+  display: grid;
+  align-content: center;
+  gap: 0.15rem;
+  transform-origin: center;
+  overflow: hidden;
+}
+
+.calendar-event strong,
+.calendar-event span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-event strong {
+  font-size: 0.82rem;
+}
+
+.calendar-event span {
+  font-size: 0.76rem;
 }
 
 .result-row {
@@ -203,8 +307,22 @@ input {
   .share-row,
   .result-row,
   .results-head,
-  .slot-head {
+  .slot-head,
+  .location-box {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .two-column {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-grid {
+    grid-template-columns: 3.6rem 1fr;
+  }
+
+  .calendar-event {
+    left: 0.35rem;
+    right: 0.35rem;
   }
 }
